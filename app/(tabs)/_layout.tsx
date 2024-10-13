@@ -1,37 +1,75 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useContext, useEffect } from 'react';
 
-import { TabBarIcon } from '@/components/navigation/TabBarIcon';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '../../constants/Colors';
+import { Ionicons } from '@expo/vector-icons';
+import { useUser } from '@clerk/clerk-expo'
+import GlobalApi from '@/service/GlobalApi';
+import { UserDetailContext } from '@/context/UserDetailContext';
+
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+
+  const { user } = useUser()
+  const { userDetail, setUserDetail } = useContext(UserDetailContext)
+
+  useEffect(() => {
+    user && VerifyUser()
+  }, [user])
+
+  const VerifyUser = async () => {
+    const result = await GlobalApi.GetUserInfo(user?.primaryEmailAddress?.emailAddress)
+
+    if (result.data.data.length != 0) {
+      setUserDetail(result.data.data[0])
+
+      return
+    } try {
+      const data = {
+        userEmail: user?.primaryEmailAddress?.emailAddress,
+        userName: user?.fullName,
+      }
+      const result = await GlobalApi.CreateNewUser(data)
+      setUserDetail(result.data.data)
+      console.log(result?.data.data)
+    } catch (e) { }
+  }
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
+        tabBarInactiveTintColor: Colors.GRAY,
       }}>
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'home' : 'home-outline'} color={color} />
-          ),
+          headerShown: false,
+          tabBarLabel: 'home',
+          tabBarActiveTintColor: Colors.DARK_BLUE,
+          tabBarIcon: ({ color }) => <Ionicons name="home" size={28} color={color} />
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="collection"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'code-slash' : 'code-slash-outline'} color={color} />
-          ),
+          headerShown: false,
+          tabBarLabel: 'Coleções',
+          tabBarActiveTintColor: Colors.DARK_BLUE,
+          tabBarIcon: ({ color }) => <Ionicons name="folder-open" size={28} color={color} />
         }}
       />
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          headerShown: false,
+          tabBarLabel: 'Perfil',
+          tabBarActiveTintColor: Colors.DARK_BLUE,
+          tabBarIcon: ({ color }) => <Ionicons name="person" size={28} color={color} />
+        }}
+      />
+
     </Tabs>
   );
 }
